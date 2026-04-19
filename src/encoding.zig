@@ -3,12 +3,13 @@ const types = @import("types.zig");
 
 const AssemblerError = types.AssemblerError;
 
-pub fn encodeA(value: u16) !u16 {
-    if (value >= 1 << 15) {
+pub fn encodeA(value: []const u8) !u16 {
+    const val = try std.fmt.parseUnsigned(u16, value, 10);
+    if (val >= 1 << 15) {
         return AssemblerError.InvalidA;
     }
 
-    return value;
+    return val;
 }
 
 pub fn encodeC(dest: []const u8, comp: []const u8, jump: []const u8) !u16 {
