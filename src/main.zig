@@ -9,6 +9,6 @@ pub fn main() !void {
     try parser.advance();
     std.debug.print("Hello: {any}\n", .{parser.hasMoreCommands()});
 
-    const c = nand.encoding.encodeC("", "", "");
+    const c = try nand.encoding.encodeC("", "", "");
     std.debug.print("C: {b}\n", .{c});
 }

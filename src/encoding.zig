@@ -1,8 +1,18 @@
 const std = @import("std");
 const types = @import("types.zig");
 
-pub fn encodeC(dest: []const u8, comp: []const u8, jump: []const u8) u16 {
-    return (0b111 << 13) + (encodeDest(dest) << 10) + (encodeComp(comp) << 3) + encodeJump(jump);
+const AssemblerError = types.AssemblerError;
+
+pub fn encodeA(value: u16) !u16 {
+    if (value >= 1 << 15) {
+        return AssemblerError.InvalidA;
+    }
+
+    return value;
+}
+
+pub fn encodeC(dest: []const u8, comp: []const u8, jump: []const u8) !u16 {
+    return (0b111 << 13) + (encodeDest(dest) << 10) + (try encodeComp(comp) << 3) + encodeJump(jump);
 }
 
 fn encodeDest(dest: []const u8) u16 {
@@ -13,7 +23,7 @@ fn encodeDest(dest: []const u8) u16 {
     return a | d | m;
 }
 
-fn encodeComp(comp: []const u8) u16 {
+fn encodeComp(comp: []const u8) !u16 {
     const eql = std.mem.eql;
 
     if (eql(u8, comp, "0")) {
@@ -128,7 +138,7 @@ fn encodeComp(comp: []const u8) u16 {
         return 0b1010101;
     }
 
-    return 0;
+    return AssemblerError.InvalidC;
 }
 
 fn encodeJump(jump: []const u8) u16 {
