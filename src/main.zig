@@ -15,9 +15,23 @@ pub fn main(init: std.process.Init) !void {
 
     var assembled_list: std.ArrayList(u8) = .empty;
     defer assembled_list.deinit(init.gpa);
-    try assembled_list.appendSlice(init.gpa, "hello from list\nagain new line");
 
-    _ = try nand.Parser.init(contents);
+    var parser = try nand.Parser.init(contents);
+    var cmd: u16 = undefined;
+    switch (parser.commandType()) {
+        .A => {
+            cmd = try nand.encoding.encodeA(try parser.symbol());
+        },
+        .C => {
+            cmd = try nand.encoding.encodeC(try parser.dest(), try parser.comp(), try parser.jump());
+        },
+        else => @panic("only C and A commands supported currently"),
+    }
+
+    var buf: [17]u8 = undefined;
+    _ = try std.fmt.bufPrint(&buf, "{b:0>16}\n", .{cmd});
+
+    try assembled_list.appendSlice(init.gpa, &buf);
 
     try writer.interface.writeAll(assembled_list.items);
     try writer.flush();
