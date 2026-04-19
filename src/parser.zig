@@ -106,12 +106,17 @@ const expectError = std.testing.expectError;
 const expectEqualStrings = std.testing.expectEqualStrings;
 
 test "parser: advancing" {
-    try expectError(AssemblerError.NoMoreCommands, Parser.init(""));
+    var p = try Parser.init("");
+    try expectEqual(false, p.hasMoreCommands());
 
-    var p = try Parser.init("D=M");
+    p = try Parser.init("D=M");
+    try expectEqual(true, p.hasMoreCommands());
+    try p.advance();
     try expectEqual(false, p.hasMoreCommands());
 
     p = try Parser.init("D=M\n@50");
+    try expectEqual(true, p.hasMoreCommands());
+    try p.advance();
     try expectEqual(true, p.hasMoreCommands());
     try p.advance();
     try expectEqual(false, p.hasMoreCommands());
@@ -121,22 +126,30 @@ test "parser: advancing" {
     try p.advance();
     try expectEqual(true, p.hasMoreCommands());
     try p.advance();
+    try expectEqual(true, p.hasMoreCommands());
+    try p.advance();
     try expectEqual(false, p.hasMoreCommands());
+
+    try expectError(AssemblerError.NoMoreCommands, p.advance());
 }
 
 test "parser: command type" {
     var p = try Parser.init("@100");
+    try p.advance();
     try expectEqual(.A, try p.commandType());
 
     p = try Parser.init("(100)");
+    try p.advance();
     try expectEqual(.L, try p.commandType());
 
     p = try Parser.init("D=1");
+    try p.advance();
     try expectEqual(.C, try p.commandType());
 }
 
 test "parser: symbol" {
     var p = try Parser.init("@123\n(456)\ndest=comp;jump");
+    try p.advance();
     try expectEqualStrings("123", try p.symbol());
 
     try p.advance();
@@ -148,6 +161,7 @@ test "parser: symbol" {
 
 test "parser: dest/comp/jump" {
     var p = try Parser.init("M=M+1\nD=0;JMP\n1;JEQ\n@123\n(456)\n;JMP");
+    try p.advance();
 
     try expectEqualStrings("M", try p.dest());
     try expectEqualStrings("M+1", try p.comp());
