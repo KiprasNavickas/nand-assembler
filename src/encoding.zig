@@ -12,11 +12,43 @@ fn encodeDest(dest: []const u8) u16 {
 
     return a | d | m;
 }
+
 fn encodeComp(_: []const u8) u16 {
     return 0b1100111;
 }
-fn encodeJump(_: []const u8) u16 {
-    return 0b011;
+
+fn encodeJump(jump: []const u8) u16 {
+    const eql = std.mem.eql;
+
+    if (eql(u8, jump, "JGT")) {
+        return 0b001;
+    }
+
+    if (eql(u8, jump, "JEQ")) {
+        return 0b010;
+    }
+
+    if (eql(u8, jump, "JGE")) {
+        return 0b011;
+    }
+
+    if (eql(u8, jump, "JLT")) {
+        return 0b100;
+    }
+
+    if (eql(u8, jump, "JNE")) {
+        return 0b101;
+    }
+
+    if (eql(u8, jump, "JLE")) {
+        return 0b110;
+    }
+
+    if (eql(u8, jump, "JMP")) {
+        return 0b111;
+    }
+
+    return 0b000;
 }
 
 const expectEqual = std.testing.expectEqual;
