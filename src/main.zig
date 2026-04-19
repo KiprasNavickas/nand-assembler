@@ -17,22 +17,24 @@ pub fn main(init: std.process.Init) !void {
     defer assembled_list.deinit(init.gpa);
 
     var parser = try nand.Parser.init(contents);
-    try parser.advance();
-    var cmd: u16 = undefined;
-    switch (try parser.commandType()) {
-        .A => {
-            cmd = try nand.encoding.encodeA(try parser.symbol());
-        },
-        .C => {
-            cmd = try nand.encoding.encodeC(try parser.dest(), try parser.comp(), try parser.jump());
-        },
-        else => @panic("only C and A commands supported currently"),
+    while (parser.hasMoreCommands()) {
+        try parser.advance();
+        var cmd: u16 = undefined;
+        switch (try parser.commandType()) {
+            .A => {
+                cmd = try nand.encoding.encodeA(try parser.symbol());
+            },
+            .C => {
+                cmd = try nand.encoding.encodeC(try parser.dest(), try parser.comp(), try parser.jump());
+            },
+            else => @panic("only C and A commands supported currently"),
+        }
+
+        var buf: [17]u8 = undefined;
+        _ = try std.fmt.bufPrint(&buf, "{b:0>16}\n", .{cmd});
+
+        try assembled_list.appendSlice(init.gpa, &buf);
     }
-
-    var buf: [17]u8 = undefined;
-    _ = try std.fmt.bufPrint(&buf, "{b:0>16}\n", .{cmd});
-
-    try assembled_list.appendSlice(init.gpa, &buf);
 
     try writer.interface.writeAll(assembled_list.items);
     try writer.flush();
