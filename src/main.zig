@@ -1,14 +1,16 @@
 const std = @import("std");
-const Io = std.Io;
 
 const nand = @import("nand");
 
-pub fn main() !void {
-    var parser = try nand.Parser.init("@100\nD=A\nD=D+A");
-    try parser.advance();
-    try parser.advance();
-    std.debug.print("Hello: {any}\n", .{parser.hasMoreCommands()});
+pub fn main(init: std.process.Init) !void {
+    const stdin = std.Io.File.stdin();
 
-    const c = try nand.encoding.encodeC("", "", "");
-    std.debug.print("C: {b}\n", .{c});
+    var file_buffer: [4096]u8 = undefined;
+    var reader = stdin.reader(init.io, &file_buffer);
+
+    const contents = try reader.interface.allocRemaining(init.gpa, std.Io.Limit.unlimited);
+    defer init.gpa.free(contents);
+
+    var parser = try nand.Parser.init(contents);
+    std.debug.print("Hello: {any}\n", .{parser.hasMoreCommands()});
 }
