@@ -2,7 +2,7 @@ const std = @import("std");
 
 pub const CommandType = enum { A, C, L };
 
-pub const AssemblerError = error{ NoMoreCommands, InvalidSymbol };
+pub const AssemblerError = error{ NoMoreCommands, InvalidSymbol, ExpectedC };
 
 pub const Parser = struct {
     iter: std.mem.TokenIterator(u8, .scalar),
@@ -51,6 +51,23 @@ pub const Parser = struct {
 
         return AssemblerError.InvalidSymbol;
     }
+
+    pub fn dest(self: *Parser) ![]const u8 {
+        if (self.commandType() != .C) {
+            return AssemblerError.ExpectedC;
+        }
+
+        var iter = std.mem.tokenizeScalar(u8, self.current_cmd, '=');
+        if (iter.next()) |dst| {
+            if (iter.peek() == null) {
+                return "";
+            }
+
+            return dst;
+        }
+
+        return "";
+    }
 };
 
 const expectEqual = std.testing.expectEqual;
@@ -98,6 +115,20 @@ test "parser: symbol" {
     try expectError(AssemblerError.InvalidSymbol, p.symbol());
 }
 
-fn parseCommand(cmd: []const u8) !Parser {
-    try Parser.init(cmd);
+test "parser: dest" {
+    var p = try Parser.init("M=M+1\nD=0;JMP\n0;JMP\n@123\n(456)");
+
+    try expectEqualStrings("M", try p.dest());
+
+    try p.advance();
+    try expectEqualStrings("D", try p.dest());
+
+    try p.advance();
+    try expectEqualStrings("", try p.dest());
+
+    try p.advance();
+    try expectError(AssemblerError.ExpectedC, p.dest());
+
+    try p.advance();
+    try expectError(AssemblerError.ExpectedC, p.dest());
 }
