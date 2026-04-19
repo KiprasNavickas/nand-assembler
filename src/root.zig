@@ -42,6 +42,27 @@ pub const Parser = struct {
 };
 
 const expectEqual = std.testing.expectEqual;
+const expectError = std.testing.expectError;
+
+test "parser: advancing" {
+    try expectError(AssemblerError.NoMoreCommands, Parser.init(""));
+
+    var p = try Parser.init("D=M");
+    try expectEqual(false, p.hasMoreCommands());
+
+    p = try Parser.init("D=M\n@50");
+    try expectEqual(true, p.hasMoreCommands());
+    try p.advance();
+    try expectEqual(false, p.hasMoreCommands());
+
+    p = try Parser.init("D=M\n@50\nM=1");
+    try expectEqual(true, p.hasMoreCommands());
+    try p.advance();
+    try expectEqual(true, p.hasMoreCommands());
+    try p.advance();
+    try expectEqual(false, p.hasMoreCommands());
+}
+
 test "parser: command type" {
     var p = try Parser.init("@100");
     try expectEqual(.A, p.commandType());
