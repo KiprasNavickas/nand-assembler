@@ -28,4 +28,5 @@ test encodeDest {
     try expectEqual(0b101, encodeDest("AM"));
     try expectEqual(0b011, encodeDest("DM"));
     try expectEqual(0b111, encodeDest("ADM"));
+    try expectEqual(0b000, encodeDest(""));
 }
