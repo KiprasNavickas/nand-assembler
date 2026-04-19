@@ -6,17 +6,12 @@ const CommandType = types.CommandType;
 
 pub const Parser = struct {
     iter: std.mem.TokenIterator(u8, .scalar),
-    current_cmd: []const u8,
+    current_cmd: ?[]const u8,
 
     pub fn init(input: []const u8) !Parser {
-        var iter = std.mem.tokenizeScalar(u8, input, '\n');
+        const iter = std.mem.tokenizeScalar(u8, input, '\n');
 
-        const next = iter.next();
-        if (next == null) {
-            return AssemblerError.NoMoreCommands;
-        }
-
-        return .{ .iter = iter, .current_cmd = next.? };
+        return .{ .iter = iter, .current_cmd = null };
     }
 
     pub fn hasMoreCommands(self: *Parser) bool {
@@ -29,11 +24,15 @@ pub const Parser = struct {
             return AssemblerError.NoMoreCommands;
         }
 
-        self.current_cmd = next.?;
+        self.current_cmd = next;
     }
 
-    pub fn commandType(self: *Parser) CommandType {
-        return switch (self.current_cmd[0]) {
+    pub fn commandType(self: *Parser) !CommandType {
+        if (self.current_cmd == null) {
+            return AssemblerError.NoCommand;
+        }
+
+        return switch (self.current_cmd.?[0]) {
             '@' => .A,
             '(' => .L,
             else => .C,
@@ -41,23 +40,23 @@ pub const Parser = struct {
     }
 
     pub fn symbol(self: *Parser) ![]const u8 {
-        if (self.commandType() == .A) {
-            return self.current_cmd[1..];
+        if (try self.commandType() == .A) {
+            return self.current_cmd.?[1..];
         }
 
-        if (self.commandType() == .L) {
-            return self.current_cmd[1 .. self.current_cmd.len - 1];
+        if (try self.commandType() == .L) {
+            return self.current_cmd.?[1 .. self.current_cmd.?.len - 1];
         }
 
         return AssemblerError.InvalidSymbol;
     }
 
     pub fn dest(self: *Parser) ![]const u8 {
-        if (self.commandType() != .C) {
+        if (try self.commandType() != .C) {
             return AssemblerError.ExpectedC;
         }
 
-        var iter = std.mem.tokenizeScalar(u8, self.current_cmd, '=');
+        var iter = std.mem.tokenizeScalar(u8, self.current_cmd.?, '=');
         if (iter.next()) |dst| {
             if (iter.peek() == null) {
                 return "";
@@ -70,29 +69,29 @@ pub const Parser = struct {
     }
 
     pub fn comp(self: *Parser) ![]const u8 {
-        if (self.commandType() != .C) {
+        if (try self.commandType() != .C) {
             return AssemblerError.ExpectedC;
         }
 
         var i: usize = 0;
-        if (std.mem.findScalar(u8, self.current_cmd, '=')) |found_i| {
+        if (std.mem.findScalar(u8, self.current_cmd.?, '=')) |found_i| {
             i = found_i + 1;
         }
 
-        const j = std.mem.findScalar(u8, self.current_cmd, ';') orelse self.current_cmd.len;
+        const j = std.mem.findScalar(u8, self.current_cmd.?, ';') orelse self.current_cmd.?.len;
         if (j - i == 0) {
             return AssemblerError.NoCompInC;
         }
 
-        return self.current_cmd[i..j];
+        return self.current_cmd.?[i..j];
     }
 
     pub fn jump(self: *Parser) ![]const u8 {
-        if (self.commandType() != .C) {
+        if (try self.commandType() != .C) {
             return AssemblerError.ExpectedC;
         }
 
-        var iter = std.mem.tokenizeScalar(u8, self.current_cmd, ';');
+        var iter = std.mem.tokenizeScalar(u8, self.current_cmd.?, ';');
         _ = iter.next();
         if (iter.next()) |jmp| {
             return jmp;
@@ -127,13 +126,13 @@ test "parser: advancing" {
 
 test "parser: command type" {
     var p = try Parser.init("@100");
-    try expectEqual(.A, p.commandType());
+    try expectEqual(.A, try p.commandType());
 
     p = try Parser.init("(100)");
-    try expectEqual(.L, p.commandType());
+    try expectEqual(.L, try p.commandType());
 
     p = try Parser.init("D=1");
-    try expectEqual(.C, p.commandType());
+    try expectEqual(.C, try p.commandType());
 }
 
 test "parser: symbol" {
