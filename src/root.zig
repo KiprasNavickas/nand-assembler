@@ -2,7 +2,7 @@ const std = @import("std");
 
 pub const CommandType = enum { A, C, L };
 
-pub const AssemblerError = error{NoMoreCommands};
+pub const AssemblerError = error{ NoMoreCommands, InvalidSymbol };
 
 pub const Parser = struct {
     iter: std.mem.TokenIterator(u8, .scalar),
@@ -39,10 +39,23 @@ pub const Parser = struct {
             else => .C,
         };
     }
+
+    pub fn symbol(self: *Parser) ![]const u8 {
+        if (self.commandType() == .A) {
+            return self.current_cmd[1..];
+        }
+
+        if (self.commandType() == .L) {
+            return self.current_cmd[1 .. self.current_cmd.len - 1];
+        }
+
+        return AssemblerError.InvalidSymbol;
+    }
 };
 
 const expectEqual = std.testing.expectEqual;
 const expectError = std.testing.expectError;
+const expectEqualStrings = std.testing.expectEqualStrings;
 
 test "parser: advancing" {
     try expectError(AssemblerError.NoMoreCommands, Parser.init(""));
@@ -72,6 +85,17 @@ test "parser: command type" {
 
     p = try Parser.init("D=1");
     try expectEqual(.C, p.commandType());
+}
+
+test "parser: symbol" {
+    var p = try Parser.init("@123\n(456)\ndest=comp;jump");
+    try expectEqualStrings("123", try p.symbol());
+
+    try p.advance();
+    try expectEqualStrings("456", try p.symbol());
+
+    try p.advance();
+    try expectError(AssemblerError.InvalidSymbol, p.symbol());
 }
 
 fn parseCommand(cmd: []const u8) !Parser {
