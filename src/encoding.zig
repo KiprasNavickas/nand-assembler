@@ -13,8 +13,122 @@ fn encodeDest(dest: []const u8) u16 {
     return a | d | m;
 }
 
-fn encodeComp(_: []const u8) u16 {
-    return 0b1100111;
+fn encodeComp(comp: []const u8) u16 {
+    const eql = std.mem.eql;
+
+    if (eql(u8, comp, "0")) {
+        return 0b0101010;
+    }
+
+    if (eql(u8, comp, "1")) {
+        return 0b0111111;
+    }
+
+    if (eql(u8, comp, "-1")) {
+        return 0b0111010;
+    }
+
+    if (eql(u8, comp, "D")) {
+        return 0b0001100;
+    }
+
+    if (eql(u8, comp, "A")) {
+        return 0b0110000;
+    }
+
+    if (eql(u8, comp, "!D")) {
+        return 0b0001101;
+    }
+
+    if (eql(u8, comp, "!A")) {
+        return 0b0110001;
+    }
+
+    if (eql(u8, comp, "-D")) {
+        return 0b0001111;
+    }
+
+    if (eql(u8, comp, "-A")) {
+        return 0b0110011;
+    }
+
+    if (eql(u8, comp, "D+1")) {
+        return 0b0011111;
+    }
+
+    if (eql(u8, comp, "A+1")) {
+        return 0b0110111;
+    }
+
+    if (eql(u8, comp, "D-1")) {
+        return 0b0011100;
+    }
+
+    if (eql(u8, comp, "A-1")) {
+        return 0b0110010;
+    }
+
+    if (eql(u8, comp, "D+A")) {
+        return 0b0000010;
+    }
+
+    if (eql(u8, comp, "D-A")) {
+        return 0b0010011;
+    }
+
+    if (eql(u8, comp, "A-D")) {
+        return 0b0000111;
+    }
+
+    if (eql(u8, comp, "D&A")) {
+        return 0b0000000;
+    }
+
+    if (eql(u8, comp, "D|A")) {
+        return 0b0010101;
+    }
+
+    if (eql(u8, comp, "M")) {
+        return 0b1110000;
+    }
+
+    if (eql(u8, comp, "!M")) {
+        return 0b1110001;
+    }
+
+    if (eql(u8, comp, "-M")) {
+        return 0b1110011;
+    }
+
+    if (eql(u8, comp, "M+1")) {
+        return 0b1110111;
+    }
+
+    if (eql(u8, comp, "M-1")) {
+        return 0b1110010;
+    }
+
+    if (eql(u8, comp, "D+M")) {
+        return 0b1000010;
+    }
+
+    if (eql(u8, comp, "D-M")) {
+        return 0b1010011;
+    }
+
+    if (eql(u8, comp, "M-D")) {
+        return 0b1000111;
+    }
+
+    if (eql(u8, comp, "D&M")) {
+        return 0b1000000;
+    }
+
+    if (eql(u8, comp, "D|M")) {
+        return 0b1010101;
+    }
+
+    return 0;
 }
 
 fn encodeJump(jump: []const u8) u16 {
