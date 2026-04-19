@@ -86,6 +86,20 @@ pub const Parser = struct {
 
         return self.current_cmd[i..j];
     }
+
+    pub fn jump(self: *Parser) ![]const u8 {
+        if (self.commandType() != .C) {
+            return AssemblerError.ExpectedC;
+        }
+
+        var iter = std.mem.tokenizeScalar(u8, self.current_cmd, ';');
+        _ = iter.next();
+        if (iter.next()) |jmp| {
+            return jmp;
+        }
+
+        return "";
+    }
 };
 
 const expectEqual = std.testing.expectEqual;
@@ -133,27 +147,32 @@ test "parser: symbol" {
     try expectError(AssemblerError.InvalidSymbol, p.symbol());
 }
 
-test "parser: dest/jump" {
-    var p = try Parser.init("M=M+1\nD=0;JMP\n1;JMP\n@123\n(456)\n;JMP");
+test "parser: dest/comp/jump" {
+    var p = try Parser.init("M=M+1\nD=0;JMP\n1;JEQ\n@123\n(456)\n;JMP");
 
     try expectEqualStrings("M", try p.dest());
     try expectEqualStrings("M+1", try p.comp());
+    try expectEqualStrings("", try p.jump());
 
     try p.advance();
     try expectEqualStrings("D", try p.dest());
     try expectEqualStrings("0", try p.comp());
+    try expectEqualStrings("JMP", try p.jump());
 
     try p.advance();
     try expectEqualStrings("", try p.dest());
     try expectEqualStrings("1", try p.comp());
+    try expectEqualStrings("JEQ", try p.jump());
 
     try p.advance();
     try expectError(AssemblerError.ExpectedC, p.dest());
     try expectError(AssemblerError.ExpectedC, p.comp());
+    try expectError(AssemblerError.ExpectedC, p.jump());
 
     try p.advance();
     try expectError(AssemblerError.ExpectedC, p.dest());
     try expectError(AssemblerError.ExpectedC, p.comp());
+    try expectError(AssemblerError.ExpectedC, p.jump());
 
     try p.advance();
     try expectError(AssemblerError.NoCompInC, p.comp());
