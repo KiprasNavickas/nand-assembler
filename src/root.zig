@@ -2,7 +2,7 @@ const std = @import("std");
 
 pub const CommandType = enum { A, C, L };
 
-pub const AssemblerError = error{ NoMoreCommands, InvalidSymbol, ExpectedC };
+pub const AssemblerError = error{ NoMoreCommands, InvalidSymbol, ExpectedC, NoCompInC };
 
 pub const Parser = struct {
     iter: std.mem.TokenIterator(u8, .scalar),
@@ -68,6 +68,24 @@ pub const Parser = struct {
 
         return "";
     }
+
+    pub fn comp(self: *Parser) ![]const u8 {
+        if (self.commandType() != .C) {
+            return AssemblerError.ExpectedC;
+        }
+
+        var i: usize = 0;
+        if (std.mem.findScalar(u8, self.current_cmd, '=')) |found_i| {
+            i = found_i + 1;
+        }
+
+        const j = std.mem.findScalar(u8, self.current_cmd, ';') orelse self.current_cmd.len;
+        if (j - i == 0) {
+            return AssemblerError.NoCompInC;
+        }
+
+        return self.current_cmd[i..j];
+    }
 };
 
 const expectEqual = std.testing.expectEqual;
@@ -115,20 +133,28 @@ test "parser: symbol" {
     try expectError(AssemblerError.InvalidSymbol, p.symbol());
 }
 
-test "parser: dest" {
-    var p = try Parser.init("M=M+1\nD=0;JMP\n0;JMP\n@123\n(456)");
+test "parser: dest/jump" {
+    var p = try Parser.init("M=M+1\nD=0;JMP\n1;JMP\n@123\n(456)\n;JMP");
 
     try expectEqualStrings("M", try p.dest());
+    try expectEqualStrings("M+1", try p.comp());
 
     try p.advance();
     try expectEqualStrings("D", try p.dest());
+    try expectEqualStrings("0", try p.comp());
 
     try p.advance();
     try expectEqualStrings("", try p.dest());
+    try expectEqualStrings("1", try p.comp());
 
     try p.advance();
     try expectError(AssemblerError.ExpectedC, p.dest());
+    try expectError(AssemblerError.ExpectedC, p.comp());
 
     try p.advance();
     try expectError(AssemblerError.ExpectedC, p.dest());
+    try expectError(AssemblerError.ExpectedC, p.comp());
+
+    try p.advance();
+    try expectError(AssemblerError.NoCompInC, p.comp());
 }
