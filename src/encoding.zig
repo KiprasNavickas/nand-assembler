@@ -5,8 +5,12 @@ pub fn encodeC(dest: []const u8, comp: []const u8, jump: []const u8) u16 {
     return (0b111 << 13) + (encodeDest(dest) << 10) + (encodeComp(comp) << 3) + encodeJump(jump);
 }
 
-fn encodeDest(_: []const u8) u16 {
-    return 0b101;
+fn encodeDest(dest: []const u8) u16 {
+    const a: u16 = if (std.mem.findScalar(u8, dest, 'A') != null) 0b100 else 0;
+    const d: u16 = if (std.mem.findScalar(u8, dest, 'D') != null) 0b010 else 0;
+    const m: u16 = if (std.mem.findScalar(u8, dest, 'M') != null) 0b001 else 0;
+
+    return a | d | m;
 }
 fn encodeComp(_: []const u8) u16 {
     return 0b1100111;
@@ -15,6 +19,13 @@ fn encodeJump(_: []const u8) u16 {
     return 0b011;
 }
 
-test "testing" {
-    try std.testing.expectEqual(0b1111011100111011, encodeC("", "", ""));
+const expectEqual = std.testing.expectEqual;
+test encodeDest {
+    try expectEqual(0b100, encodeDest("A"));
+    try expectEqual(0b010, encodeDest("D"));
+    try expectEqual(0b001, encodeDest("M"));
+    try expectEqual(0b110, encodeDest("AD"));
+    try expectEqual(0b101, encodeDest("AM"));
+    try expectEqual(0b011, encodeDest("DM"));
+    try expectEqual(0b111, encodeDest("ADM"));
 }
