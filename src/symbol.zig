@@ -38,9 +38,10 @@ pub const SymbolTable = struct {
         _ = try self._map.put(symbol, address);
     }
 
-    pub fn reserveNewAddress(self: *SymbolTable, symbol: []const u8) !void {
+    pub fn reserveNewAddress(self: *SymbolTable, symbol: []const u8) !u16 {
         try self.addEntry(symbol, self._nextFreeAddr);
         self._nextFreeAddr = self._nextFreeAddr + 1;
+        return self._nextFreeAddr - 1;
     }
 
     pub fn getAddress(self: *SymbolTable, symbol: []const u8) ?u16 {
