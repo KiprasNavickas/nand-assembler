@@ -38,4 +38,6 @@ pub fn main(init: std.process.Init) !void {
 
     try writer.interface.writeAll(assembled_list.items);
     try writer.flush();
+
+    _ = try nand.SymbolTable.init(init.gpa);
 }
