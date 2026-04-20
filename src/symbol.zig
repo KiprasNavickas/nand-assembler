@@ -2,6 +2,7 @@ const std = @import("std");
 
 pub const SymbolTable = struct {
     _map: std.StringHashMap(u16),
+    _nextFreeAddr: u16 = 16,
 
     pub fn init(gpa: std.mem.Allocator) !SymbolTable {
         var map: std.StringHashMap(u16) = .init(gpa);
@@ -35,6 +36,11 @@ pub const SymbolTable = struct {
 
     pub fn addEntry(self: *SymbolTable, symbol: []const u8, address: u16) !void {
         _ = try self._map.put(symbol, address);
+    }
+
+    pub fn reserveNewAddress(self: *SymbolTable, symbol: []const u8) !void {
+        try self.addEntry(symbol, self._nextFreeAddr);
+        self._nextFreeAddr = self._nextFreeAddr + 1;
     }
 
     pub fn getAddress(self: *SymbolTable, symbol: []const u8) ?u16 {
