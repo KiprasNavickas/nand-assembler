@@ -31,13 +31,16 @@ pub const Parser = struct {
                 return AssemblerError.InvalidCommand;
             }
 
-            if (self.line_no == null) {
-                self.line_no = 0;
-            } else {
-                self.line_no = self.line_no.? + 1;
+            self.current_cmd = trimmed;
+
+            if (try self.commandType() != .L) {
+                if (self.line_no == null) {
+                    self.line_no = 0;
+                } else {
+                    self.line_no = self.line_no.? + 1;
+                }
             }
 
-            self.current_cmd = trimmed;
             return;
         }
 
@@ -169,6 +172,29 @@ test "parser: advancing w/ comments and whitespace" {
     try expectError(AssemblerError.NoMoreCommands, p.advance());
     try expectEqual(1, p.line_no);
 }
+
+test "parser: advancing w/ labels" {
+    var p = try Parser.init("(LABEL1)\n@0\n(LABEL2)\n@0\n(LABEL3)\n@0");
+
+    try p.advance();
+    try expectEqual(null, p.line_no);
+
+    try p.advance();
+    try expectEqual(0, p.line_no);
+
+    try p.advance();
+    try expectEqual(0, p.line_no);
+
+    try p.advance();
+    try expectEqual(1, p.line_no);
+
+    try p.advance();
+    try expectEqual(1, p.line_no);
+
+    try p.advance();
+    try expectEqual(2, p.line_no);
+}
+
 test "parser: command type" {
     var p = try Parser.init("@100");
     try p.advance();
