@@ -7,24 +7,41 @@ const CommandType = types.CommandType;
 pub const Parser = struct {
     iter: std.mem.TokenIterator(u8, .scalar),
     current_cmd: ?[]const u8,
+    line_no: ?u16,
 
     pub fn init(input: []const u8) !Parser {
         const iter = std.mem.tokenizeScalar(u8, input, '\n');
 
-        return .{ .iter = iter, .current_cmd = null };
-    }
-
-    pub fn hasMoreCommands(self: *Parser) bool {
-        return self.iter.peek() != null;
+        return .{ .iter = iter, .current_cmd = null, .line_no = null };
     }
 
     pub fn advance(self: *Parser) !void {
-        const next = self.iter.next();
-        if (next == null) {
-            return AssemblerError.NoMoreCommands;
+        while (self.iter.next()) |next| {
+            const trimmed = std.mem.trim(u8, next, " ");
+
+            if (trimmed.len == 0) {
+                continue;
+            }
+
+            if (trimmed[0] == '/') {
+                if (trimmed[1] == '/') {
+                    continue;
+                }
+
+                return AssemblerError.InvalidCommand;
+            }
+
+            if (self.line_no == null) {
+                self.line_no = 0;
+            } else {
+                self.line_no = self.line_no.? + 1;
+            }
+
+            self.current_cmd = trimmed;
+            return;
         }
 
-        self.current_cmd = next;
+        return AssemblerError.NoMoreCommands;
     }
 
     pub fn commandType(self: *Parser) !CommandType {
@@ -107,32 +124,51 @@ const expectEqualStrings = std.testing.expectEqualStrings;
 
 test "parser: advancing" {
     var p = try Parser.init("");
-    try expectEqual(false, p.hasMoreCommands());
+    try expectEqual(null, p.line_no);
+    try expectError(AssemblerError.NoMoreCommands, p.advance());
+    try expectEqual(null, p.line_no);
 
     p = try Parser.init("D=M");
-    try expectEqual(true, p.hasMoreCommands());
     try p.advance();
-    try expectEqual(false, p.hasMoreCommands());
+    try expectEqual(0, p.line_no);
+    try expectError(AssemblerError.NoMoreCommands, p.advance());
+    try expectEqual(0, p.line_no);
 
     p = try Parser.init("D=M\n@50");
-    try expectEqual(true, p.hasMoreCommands());
     try p.advance();
-    try expectEqual(true, p.hasMoreCommands());
+    try expectEqual(0, p.line_no);
     try p.advance();
-    try expectEqual(false, p.hasMoreCommands());
+    try expectEqual(1, p.line_no);
+    try expectError(AssemblerError.NoMoreCommands, p.advance());
+    try expectEqual(1, p.line_no);
 
     p = try Parser.init("D=M\n@50\nM=1");
-    try expectEqual(true, p.hasMoreCommands());
     try p.advance();
-    try expectEqual(true, p.hasMoreCommands());
+    try expectEqual(0, p.line_no);
     try p.advance();
-    try expectEqual(true, p.hasMoreCommands());
+    try expectEqual(1, p.line_no);
     try p.advance();
-    try expectEqual(false, p.hasMoreCommands());
-
+    try expectEqual(2, p.line_no);
     try expectError(AssemblerError.NoMoreCommands, p.advance());
+    try expectEqual(2, p.line_no);
 }
 
+test "parser: advancing w/ comments and whitespace" {
+    var p = try Parser.init("// comment\n\n\n   \n    D=M\n   0;JMP   ");
+
+    try expectEqual(null, p.line_no);
+
+    try p.advance();
+    try expectEqualStrings("D=M", p.current_cmd.?);
+    try expectEqual(0, p.line_no);
+
+    try p.advance();
+    try expectEqualStrings("0;JMP", p.current_cmd.?);
+    try expectEqual(1, p.line_no);
+
+    try expectError(AssemblerError.NoMoreCommands, p.advance());
+    try expectEqual(1, p.line_no);
+}
 test "parser: command type" {
     var p = try Parser.init("@100");
     try p.advance();

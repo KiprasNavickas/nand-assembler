@@ -17,8 +17,15 @@ pub fn main(init: std.process.Init) !void {
     defer assembled_list.deinit(init.gpa);
 
     var parser = try nand.Parser.init(contents);
-    while (parser.hasMoreCommands()) {
-        try parser.advance();
+    while (true) {
+        parser.advance() catch |err| {
+            if (err == nand.AssemblerError.NoMoreCommands) {
+                break;
+            }
+
+            return err;
+        };
+
         var cmd: u16 = undefined;
         switch (try parser.commandType()) {
             .A => {
