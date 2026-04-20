@@ -40,7 +40,7 @@ pub fn main(init: std.process.Init) !void {
 
                 try symbol_table.addEntry(try parser.symbol(), line_no);
             },
-            else => {},
+            else => continue,
         }
     }
 
@@ -78,7 +78,7 @@ pub fn main(init: std.process.Init) !void {
             .C => {
                 cmd = try nand.encoding.encodeC(try parser.dest(), try parser.comp(), try parser.jump());
             },
-            else => {},
+            else => continue,
         }
 
         var buf: [17]u8 = undefined;
