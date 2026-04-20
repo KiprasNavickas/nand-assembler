@@ -17,6 +17,7 @@ pub fn main(init: std.process.Init) !void {
     defer assembled_list.deinit(init.gpa);
 
     var symbol_table = try nand.SymbolTable.init(init.gpa);
+    defer symbol_table.deinit();
 
     var parser = try nand.Parser.init(contents);
     while (true) {
