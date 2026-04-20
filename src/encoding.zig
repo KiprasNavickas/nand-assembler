@@ -13,7 +13,7 @@ pub fn encodeA(value: []const u8) !u16 {
 }
 
 pub fn encodeC(dest: []const u8, comp: []const u8, jump: []const u8) !u16 {
-    return (0b111 << 13) + (encodeDest(dest) << 10) + (try encodeComp(comp) << 3) + encodeJump(jump);
+    return (0b111 << 13) | (try encodeComp(comp) << 6) | (encodeDest(dest) << 3) | encodeJump(jump);
 }
 
 fn encodeDest(dest: []const u8) u16 {
@@ -186,4 +186,11 @@ test encodeDest {
     try expectEqual(0b011, encodeDest("DM"));
     try expectEqual(0b111, encodeDest("ADM"));
     try expectEqual(0b000, encodeDest(""));
+}
+
+test encodeC {
+    try expectEqual(0b1110110000010000, encodeC("D", "A", ""));
+    try expectEqual(0b1110000010010000, encodeC("D", "D+A", ""));
+    try expectEqual(0b1110001100001000, encodeC("M", "D", ""));
+    try expectEqual(0b1110001100111111, encodeC("ADM", "D", "JMP"));
 }
