@@ -6,3 +6,4 @@ pub const SymbolTable = @import("symbol.zig").SymbolTable;
 pub const Parser = parser.Parser;
 pub const AssemblerError = types.AssemblerError;
 pub const CommandType = types.CommandType;
+pub const assemble = @import("assembler.zig").assemble;
