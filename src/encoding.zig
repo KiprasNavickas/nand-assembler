@@ -63,7 +63,7 @@ fn encodeComp(comp: []const u8) !u16 {
     }
 
     if (eql(u8, comp, "D-1")) {
-        return 0b0011100;
+        return 0b0001110;
     }
 
     if (eql(u8, comp, "A-1")) {
